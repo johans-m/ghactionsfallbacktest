@@ -6,25 +6,33 @@ on:
 jobs:
   primer-job:
     runs-on: ubuntu-latest
-    continue-on-error: true  # Permite que el job continúe si falla un step
     outputs:
       resultado: ${{ steps.set-output.outputs.status }}
     steps:
-      - name: Comando que falla
+      - name: Ejecutar y capturar fallo
         id: test
         run: |
-          echo "Ejecutando algo que fallará..."
+          echo "Ejecutando comando que falla..."
           exit 1
-        continue-on-error: true  # 👈 Permite que falle sin cortar el job
+        continue-on-error: true  # 👉 no detiene el job1
 
-      - name: Evaluar si el paso falló y emitir output
+      - name: Evaluar estado y guardar output
         id: set-output
         run: |
           if [[ "${{ steps.test.outcome }}" == "failure" ]]; then
             echo "status=FAIL" >> $GITHUB_OUTPUT
+            echo "Fallo detectado. Se marcará como fallo al final."
+            echo "fail=true" >> $GITHUB_ENV  # 👈 usamos una variable de entorno
           else
             echo "status=OK" >> $GITHUB_OUTPUT
+            echo "fail=false" >> $GITHUB_ENV
           fi
+
+      - name: Marcar como fallido si fue necesario
+        if: env.fail == 'true'
+        run: |
+          echo "Marcando el job como fallido intencionalmente..."
+          exit 1  # 👈 Esto marca el job como fallido al final
 
   segundo-job:
     runs-on: ubuntu-latest

@@ -6,23 +6,25 @@ on:
 jobs:
   primer-job:
     runs-on: ubuntu-latest
-    continue-on-error: true  # 👈 clave para que los outputs estén disponibles
+    continue-on-error: true
     outputs:
       resultado: ${{ steps.set-output.outputs.status }}
     steps:
-      - name: Ejecutar algo que falla
+      - name: Ejecutar algo que falla o no
         id: test
         run: |
           echo "Fallo intencional..."
-          # exit 1
+          exit 1  # cámbialo a 0 si quieres probar caso exitoso
         continue-on-error: true
 
-      - name: Establecer resultado
+      - name: Establecer resultado y anotar
         id: set-output
         run: |
           if [[ "${{ steps.test.outcome }}" == "failure" ]]; then
+            echo "::error title=Fallo detectado::El paso 'test' falló intencionalmente"
             echo "status=FAIL" >> $GITHUB_OUTPUT
           else
+            echo "::notice title=Éxito detectado::El paso 'test' se ejecutó correctamente"
             echo "status=OK" >> $GITHUB_OUTPUT
           fi
 

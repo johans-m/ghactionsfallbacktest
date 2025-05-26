@@ -1,0 +1,16 @@
+name: Main Workflow
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  run-main:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ejecutando
+        run: |
+          echo "✅ Ejecutando job principal"
+          # ❗ Descomentá esta línea para forzar fallo y probar
+          # exit 1

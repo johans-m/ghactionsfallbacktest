@@ -25,15 +25,15 @@ jobs:
         run: echo "Running fallback job"
         # Simula fallo con: exit 1
 
-  finalize:
+   finalize:
     name: Finalize Job
     needs:
       - main
       - fallback
-    # Ejecutar solo si al menos uno tuvo éxito
     if: |
-      (needs.main.result == 'success') || 
-      (needs.main.result == 'failure' && needs.fallback.result == 'success')
+      always() &&
+      (needs.main.result == 'success' || 
+       (needs.main.result == 'failure' && needs.fallback.result == 'success'))
     runs-on: ubuntu-latest
     steps:
       - name: Final success case
@@ -45,8 +45,9 @@ jobs:
       - main
       - fallback
     if: |
-      (needs.main.result == 'failure') && 
-      (needs.fallback.result == 'failure')
+      always() &&
+      (needs.main.result == 'failure' && 
+       needs.fallback.result == 'failure')
     runs-on: ubuntu-latest
     steps:
       - name: Final failure case

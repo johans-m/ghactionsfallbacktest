@@ -1,4 +1,4 @@
-name: CI Detect Fail
+name: Workflow con fallback
 
 on:
   workflow_dispatch:
@@ -6,18 +6,18 @@ on:
 jobs:
   primer-job:
     runs-on: ubuntu-latest
-    continue-on-error: true  # 👈 importante: permite fallar sin bloquear outputs
+    continue-on-error: true  # 👈 clave para que los outputs estén disponibles
     outputs:
       resultado: ${{ steps.set-output.outputs.status }}
     steps:
-      - name: Ejecutar y capturar fallo
+      - name: Ejecutar algo que falla
         id: test
         run: |
-          echo "Ejecutando..."
+          echo "Fallo intencional..."
           exit 1
         continue-on-error: true
 
-      - name: Guardar output
+      - name: Establecer resultado
         id: set-output
         run: |
           if [[ "${{ steps.test.outcome }}" == "failure" ]]; then
@@ -31,5 +31,5 @@ jobs:
     needs: primer-job
     if: needs.primer-job.outputs.resultado == 'FAIL'
     steps:
-      - name: Ejecutar solo si primer-job falló
-        run: echo "Se detectó un fallo en el primer job"
+      - name: Mostrar mensaje de uso
+        run: echo "Se usó el segundo"

@@ -27,10 +27,17 @@ jobs:
     
   finalize:
     runs-on: ubuntu-latest
-    needs: [main_job, fallback_job]
+    needs: 
+      - main_job
+      - fallback_job
+    if: always()  # Siempre se ejecuta
     
     steps:
-    - name: Marcar workflow como exitoso
-      if: always()
+    - name: Determinar resultado
       run: |
-        echo "Workflow completado (incluso si algunos jobs fallaron)"
+        if [ "${{ needs.main_job.result }}" == "success" ]; then
+          echo "Workflow completado por main_job"
+        else
+          echo "Workflow completado por fallback_job"
+        fi
+        echo "Workflow marcado como exitoso"

@@ -1,0 +1,36 @@
+name: Prueba con fallback
+
+on:
+  workflow_dispatch:
+
+jobs:
+  main_job:
+    runs-on: ubuntu-latest
+    timeout-minutes: 1  # Timeout de 1 minuto
+    
+    steps:
+    - name: Forzar fallo con sleep
+      run: |
+        echo "Intentando ejecutar el trabajo principal..."
+        sleep 90  # Esto causará el timeout
+        echo "Esta línea no se ejecutará"
+    
+  fallback_job:
+    runs-on: ubuntu-latest
+    needs: main_job
+    if: failure()  # Solo se ejecuta si main_job falla
+    
+    steps:
+    - name: Ejecutar fallback
+      run: |
+        echo "OK: se ejecutó en fallback"
+    
+  finalize:
+    runs-on: ubuntu-latest
+    needs: [main_job, fallback_job]
+    
+    steps:
+    - name: Marcar workflow como exitoso
+      if: always()
+      run: |
+        echo "Workflow completado (incluso si algunos jobs fallaron)"

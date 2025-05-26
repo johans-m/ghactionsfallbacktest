@@ -20,4 +20,4 @@ jobs:
     needs: primer-job
     steps:
       - name: Esto se ejecuta aunque el anterior falló
-        run: exit 1
+        run: echo "Todo melo por aquí"

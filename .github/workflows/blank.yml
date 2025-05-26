@@ -23,7 +23,7 @@ jobs:
           echo "Duración: $DURATION segundos"
 
           # Si pasó el límite, fallamos manualmente
-          if [ "$DURATION" -gt 10]; then
+          if [ "$DURATION" -gt 10 ]; then
             echo "::warning title=Tarea lenta::La tarea tardó más de 60s"
             exit 1
           else

@@ -12,7 +12,8 @@ jobs:
     steps:
       - name: Dummy step
         run: echo "Running main job"
-        # Simula fallo con: exit 1
+      - name: Force failure for testing
+        run: exit 1
 
   fallback:
     name: Fallback Job

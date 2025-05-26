@@ -1,23 +1,35 @@
-# This is a basic workflow to help you get started with Actions
+name: CI Detect Fail
 
-name: CI Test 2
-
-# Controls when the workflow will run
 on:
-
   workflow_dispatch:
 
 jobs:
   primer-job:
     runs-on: ubuntu-latest
-    continue-on-error: true
+    continue-on-error: true  # Permite que el job continúe si falla un step
+    outputs:
+      resultado: ${{ steps.set-output.outputs.status }}
     steps:
-      - name: Esto falla
-        run: exit 1
+      - name: Comando que falla
+        id: test
+        run: |
+          echo "Ejecutando algo que fallará..."
+          exit 1
+        continue-on-error: true  # 👈 Permite que falle sin cortar el job
+
+      - name: Evaluar si el paso falló y emitir output
+        id: set-output
+        run: |
+          if [[ "${{ steps.test.outcome }}" == "failure" ]]; then
+            echo "status=FAIL" >> $GITHUB_OUTPUT
+          else
+            echo "status=OK" >> $GITHUB_OUTPUT
+          fi
 
   segundo-job:
     runs-on: ubuntu-latest
     needs: primer-job
+    if: needs.primer-job.outputs.resultado == 'FAIL'
     steps:
-      - name: Esto se ejecuta aunque el anterior falló
-        run: echo "Todo melo por aquí"
+      - name: Ejecutar solo si primer-job falló
+        run: echo "Se detectó un fallo en el primer job"

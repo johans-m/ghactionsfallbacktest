@@ -9,48 +9,68 @@ jobs:
   main:
     name: Main Job
     runs-on: ubuntu-latest
+    outputs:
+      main_status: ${{ steps.set-output.outputs.status }}
     steps:
-      - name: Dummy step
-        run: echo "Running main job"
-      - name: Force failure for testing
-        run: exit 1
+      - name: Dummy main logic with controlled failure
+        id: run-main
+        run: |
+          echo "Running main job..."
+          false  # <- simula un fallo real
+          echo $? > main_status.txt
+
+      - name: Capture status (simulate logic handling)
+        id: set-output
+        run: |
+          if [ -f main_status.txt ]; then
+            STATUS=$(cat main_status.txt)
+          else
+            STATUS=1
+          fi
+          echo "Main status is $STATUS"
+          echo "status=$STATUS" >> "$GITHUB_OUTPUT"
+        continue-on-error: true  # Nunca falla el job realmente
 
   fallback:
     name: Fallback Job
     needs: main
-    if: failure()  # Solo se ejecuta si main falla
+    if: ${{ needs.main.outputs.main_status != '0' }}
     runs-on: ubuntu-latest
     steps:
       - name: Dummy fallback step
-        run: echo "Running fallback job"
-        # Simula fallo con: exit 1
+        run: |
+          echo "Running fallback logic to recover from main failure"
+          # Simula que el fallback tuvo éxito
+          exit 0
 
   finalize:
-    name: Finalize Job
+    name: Finalize Success
     needs:
       - main
       - fallback
     if: |
       always() &&
-      (needs.main.result == 'success' || 
-       (needs.main.result == 'failure' && needs.fallback.result == 'success'))
+      (
+        needs.main.outputs.main_status == '0' ||
+        (needs.main.outputs.main_status != '0')
+      )
     runs-on: ubuntu-latest
     steps:
-      - name: Final success case
-        run: echo "Workflow completed successfully 🎉"
+      - name: Declare success
+        run: echo "🎉 Workflow completed successfully."
 
   finalize_fail:
-    name: Finalize Failure Case
+    name: Finalize Failure
     needs:
       - main
       - fallback
     if: |
       always() &&
-      (needs.main.result == 'failure' && 
-       needs.fallback.result == 'failure')
+      needs.main.outputs.main_status != '0' &&
+      failure()  # fallback falló también
     runs-on: ubuntu-latest
     steps:
-      - name: Final failure case
+      - name: Final error report
         run: |
-          echo "Workflow failed ❌"
+          echo "❌ Workflow failed completely."
           exit 1

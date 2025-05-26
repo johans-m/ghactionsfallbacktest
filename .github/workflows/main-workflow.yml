@@ -13,4 +13,4 @@ jobs:
         run: |
           echo "✅ Ejecutando job principal"
           # ❗ Descomentá esta línea para forzar fallo y probar
-          exit 1
+          # exit 1

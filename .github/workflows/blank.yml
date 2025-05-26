@@ -6,35 +6,35 @@ on:
 jobs:
   primer-job:
     runs-on: ubuntu-latest
-    continue-on-error: true
+    timeout-minutes: 1
+    continue-on-error: true  
     outputs:
       resultado: ${{ steps.set-output.outputs.status }}
     steps:
-      - name: Ejecutar con control manual del tiempo
+      - name: Ejecutar algo que falla o no
         id: test
         run: |
-          echo "Iniciando tarea con tiempo controlado..."
-          SECONDS=0
-
-          # Simula una tarea larga (puedes cambiar sleep por otro comando real)
-          sleep 30
-
-          DURATION=$SECONDS
-          echo "Duración: $DURATION segundos"
-
-          # Si pasó el límite, fallamos manualmente
-          if [ "$DURATION" -gt 10 ]; then
-            echo "::warning title=Tarea lenta::La tarea tardó más de 60s"
-            exit 1
-          else
-            echo "Tarea completada dentro del tiempo"
-          fi
+          echo "Fallo intencional..."
+          echo "Durmiendo 70 segundos..."
+          sleep 70
+          #exit 1  # cámbialo a 0 si quieres probar caso exitoso
         continue-on-error: true
+
+      - name: Establecer resultado y anotar
+        id: set-output
+        run: |
+          if [[ "${{ steps.test.outcome }}" == "failure" ]]; then
+            echo "::error title=Fallo detectado::El paso 'test' falló intencionalmente"
+            echo "status=FAIL" >> $GITHUB_OUTPUT
+          else
+            echo "::notice title=Éxito detectado::El paso 'test' se ejecutó correctamente"
+            echo "status=OK" >> $GITHUB_OUTPUT
+          fi
 
   segundo-job:
     runs-on: ubuntu-latest
     needs: primer-job
-    if: needs.primer-job.outputs.resultado == 'FAIL' || needs.primer-job.result == 'failure'
+    if: needs.primer-job.outputs.resultado == 'FAIL'
     steps:
       - name: Mostrar mensaje de uso
         run: |

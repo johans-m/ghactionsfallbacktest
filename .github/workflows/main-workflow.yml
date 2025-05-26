@@ -9,8 +9,14 @@ jobs:
   run-main:
     runs-on: ubuntu-latest
     steps:
-      - name: Ejecutando
+      - name: Ejecutando con posibilidad de fallo aleatorio
         run: |
-          echo "✅ Ejecutando job principal"
-          # ❗ Descomentá esta línea para forzar fallo y probar
-          # exit 1
+          echo "🎲 Probando fallo aleatorio"
+          RANDOM_NUMBER=$((RANDOM % 2))  # 0 o 1
+          echo "Número aleatorio: $RANDOM_NUMBER"
+          if [ "$RANDOM_NUMBER" -eq 1 ]; then
+            echo "❌ Simulando fallo"
+            exit 1
+          else
+            echo "✅ Todo bien"
+          fi

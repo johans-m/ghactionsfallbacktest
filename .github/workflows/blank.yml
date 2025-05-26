@@ -43,34 +43,18 @@ jobs:
           # Simula que el fallback tuvo éxito
           exit 0
 
-  finalize:
-    name: Finalize Success
-    needs:
-      - main
-      - fallback
-    if: |
-      always() &&
-      (
-        needs.main.outputs.main_status == '0' ||
-        (needs.main.outputs.main_status != '0')
-      )
-    runs-on: ubuntu-latest
-    steps:
-      - name: Declare success
-        run: echo "🎉 Workflow completed successfully."
-
   finalize_fail:
-    name: Finalize Failure
-    needs:
-      - main
-      - fallback
-    if: |
-      always() &&
-      needs.main.outputs.main_status != '0' &&
-      failure()  # fallback falló también
-    runs-on: ubuntu-latest
-    steps:
-      - name: Final error report
-        run: |
-          echo "❌ Workflow failed completely."
-          exit 1
+      name: Finalize Failure
+      needs:
+        - main
+        - fallback
+      if: |
+        always() &&
+        needs.main.outputs.main_status != '0' &&
+        failure()
+      runs-on: ubuntu-latest
+      steps:
+        - name: Final error report
+          run: |
+            echo "❌ Workflow failed completely."
+            exit 1

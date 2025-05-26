@@ -1,0 +1,15 @@
+name: Fallback on Failure
+
+on:
+  workflow_run:
+    workflows: ["Main Workflow"]  # Nombre exacto del primer workflow
+    types:
+      - completed
+
+jobs:
+  run-on-failure:
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fallback ejecutado
+        run: echo "🚨 El workflow 'Main Workflow' falló. Ejecutando fallback."

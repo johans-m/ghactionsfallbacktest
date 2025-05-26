@@ -35,5 +35,6 @@ jobs:
     steps:
       - name: Mostrar mensaje de uso
         run: |
+          exit 1
           echo "Se usó el segundo"
           echo "::notice title=Segundo job activado::El segundo job fue ejecutado porque el primero falló"

@@ -14,15 +14,16 @@ on:
   workflow_dispatch:
 
 jobs:
-  main-job:
+  primer-job:
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
-      - name: Comando que puede fallar
+      - name: Esto falla
         run: exit 1
 
-  recovery-job:
-    runs-on: windows-latest
-    needs: main-job
-    if: failure()  # Solo se ejecuta si el anterior falló
+  segundo-job:
+    runs-on: ubuntu-latest
+    needs: primer-job
     steps:
-      - run: echo "Ejecutando recuperación en Windows"
+      - name: Esto se ejecuta aunque el anterior falló
+        run: echo "Todo bien aquí"

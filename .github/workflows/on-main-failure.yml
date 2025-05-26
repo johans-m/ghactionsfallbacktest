@@ -1,10 +1,14 @@
 name: Fallback on Failure
 
 on:
+  # Ejecutar automáticamente si "Main Workflow" falla
   workflow_run:
-    workflows: ["Main Workflow"]  # Nombre exacto del primer workflow
+    workflows: ["Main Workflow"]
     types:
       - completed
+
+  # También permitir ejecución manual
+  workflow_dispatch:
 
 jobs:
   run-on-failure:

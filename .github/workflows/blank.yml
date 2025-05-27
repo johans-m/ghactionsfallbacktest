@@ -1,42 +1,45 @@
-name: Workflow con fallback
+name: Workflow con fallback garantizado
 
 on:
   workflow_dispatch:
 
 jobs:
-  primer-job:
+  estado-global:
+    name: Estado Global
     runs-on: ubuntu-latest
-    timeout-minutes: 1
-    continue-on-error: true  
     outputs:
-      resultado: ${{ steps.set-output.outputs.status }}
+      fallback: ${{ steps.definir.outputs.fallback }}
     steps:
-      - name: Ejecutar algo que falla o no
-        id: test
+      - name: Definir estado por defecto
+        id: definir
+        run: echo "fallback=FALLBACK" >> $GITHUB_OUTPUT
+
+  primer-job:
+    name: Primer Job
+    runs-on: ubuntu-latest
+    needs: estado-global
+    timeout-minutes: 0.1
+    outputs:
+      fallback: ${{ steps.set-status.outputs.fallback }}
+    steps:
+      - name: Simular tarea (con posible timeout)
+        id: tarea
         run: |
-          echo "Fallo intencional..."
-          echo "Durmiendo 70 segundos..."
-          sleep 70
-          #exit 1  # cámbialo a 0 si quieres probar caso exitoso
+          echo "Ejecutando algo largo..."
+          sleep 70  # Simular timeout aquí
         continue-on-error: true
 
-      - name: Establecer resultado y anotar
-        id: set-output
-        run: |
-          if [[ "${{ steps.test.outcome }}" == "failure" ]]; then
-            echo "::error title=Fallo detectado::El paso 'test' falló intencionalmente"
-            echo "status=FAIL" >> $GITHUB_OUTPUT
-          else
-            echo "::notice title=Éxito detectado::El paso 'test' se ejecutó correctamente"
-            echo "status=OK" >> $GITHUB_OUTPUT
-          fi
+      - name: Establecer estado si termina OK
+        id: set-status
+        if: success()
+        run: echo "fallback=OK" >> $GITHUB_OUTPUT
 
   segundo-job:
+    name: Fallback Job
     runs-on: ubuntu-latest
-    needs: primer-job
-    if: needs.primer-job.outputs.resultado == 'FAIL' || needs.primer-job.result == 'failure'
+    needs: [estado-global, primer-job]
+    if: needs.primer-job.outputs.fallback != 'OK'
     steps:
-      - name: Mostrar mensaje de uso
+      - name: Ejecutar fallback
         run: |
-          echo "Se usó el segundo"
-          echo "::notice title=Segundo job activado::El segundo job fue ejecutado porque el primero falló"
+          echo "::notice title=Fallback Activado::Se ejecuta el fallback porque el primer job no se completó correctamente o se cortó por timeout"

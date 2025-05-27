@@ -18,7 +18,7 @@ jobs:
     name: Primer intento
     runs-on: ubuntu-latest
     needs: estado-global
-    timeout-minutes: 0.5
+    timeout-minutes: 1
     outputs:
       fallback: ${{ steps.resultado.outputs.fallback }}
     steps:

@@ -1,47 +1,41 @@
-name: Workflow con fallback garantizado
+name: Workflow robusto con fallback
 
 on:
   workflow_dispatch:
 
 jobs:
-  estado-global:
-    name: Inicializar estado
-    runs-on: ubuntu-latest
-    outputs:
-      fallback: ${{ steps.set.outputs.fallback }}
-    steps:
-      - name: Valor por defecto (fallback activado)
-        id: set
-        run: echo "fallback=ACTIVADO" >> $GITHUB_OUTPUT
-
   primer-job:
     name: Primer intento
     runs-on: ubuntu-latest
-    needs: estado-global
-    timeout-minutes: 1
-    outputs:
-      fallback: ${{ steps.resultado.outputs.fallback }}
+    timeout-minutes: 0.5
+    continue-on-error: true
     steps:
-      - name: Simular posible timeout
-        id: tarea
+      - name: Tarea que puede hacer timeout
         run: |
-          echo "Simulando tarea larga..."
+          echo "Simulando trabajo largo..."
           sleep 70
-        continue-on-error: true
 
-      - name: Cambiar estado a OK si terminó bien
-        id: resultado
-        if: success()
-        run: echo "fallback=OK" >> $GITHUB_OUTPUT
+  evaluar:
+    name: Evaluar necesidad de fallback
+    runs-on: ubuntu-latest
+    needs: primer-job
+    outputs:
+      usar_fallback: ${{ steps.decision.outputs.fallback }}
+    steps:
+      - name: Decidir si se activa fallback
+        id: decision
+        run: |
+          if [[ "${{ needs.primer-job.result }}" == "success" ]]; then
+            echo "fallback=no" >> $GITHUB_OUTPUT
+          else
+            echo "fallback=si" >> $GITHUB_OUTPUT
+          fi
 
   fallback:
     name: Job de Fallback
     runs-on: ubuntu-latest
-    needs: [estado-global, primer-job]
-    # Solo se ejecuta si el fallback final quedó ACTIVADO
-    if: |
-      (needs.primer-job.result == 'failure' || needs.primer-job.result == 'cancelled') &&
-      (needs.primer-job.outputs.fallback != 'OK')
+    needs: evaluar
+    if: needs.evaluar.outputs.usar_fallback == 'si'
     steps:
-      - name: Ejecutar lógica de fallback
-        run: echo "::notice title=Fallback::Primer job falló o fue cancelado. Ejecutando fallback..."
+      - name: Ejecutar fallback
+        run: echo "🔥 Ejecutando fallback porque el primer job falló o fue cancelado (timeout)"

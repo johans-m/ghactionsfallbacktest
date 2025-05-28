@@ -16,7 +16,7 @@ jobs:
             "https://api.github.com/repos/${{ github.repository }}/actions/runners")
           
           if echo "$RESPONSE" | grep -q '"name":"self-hosted-linux".*"status":"online"'; then
-            echo "Runner self-hosted está disponible"
+            echo "::notice title=Runner self-hosted está disponible::"
             echo "available=true" >> $GITHUB_OUTPUT
           else
             echo "Runner self-hosted NO está disponible"
@@ -27,7 +27,7 @@ jobs:
   use-self-hosted:
     needs: check-availability
     if: needs.check-availability.outputs.is_runner_available == 'false'
-    runs-on: ubuntu-latest #self-hosted-linux
+    runs-on: self-hosted-linux
     
     steps:
       - name: Execute on self-hosted runner

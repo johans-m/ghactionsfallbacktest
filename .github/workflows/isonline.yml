@@ -1,0 +1,48 @@
+name: Smart Runner Selection
+on: workflow_dispatch
+
+jobs:
+  check-availability:
+    runs-on: ubuntu-latest
+    outputs:
+      is_runner_available: ${{ steps.check-runner.outputs.available }}
+    
+    steps:
+      - name: Check if self-hosted runner is available
+        id: check-runner
+        run: |
+          # Verifica si el runner self-hosted está online
+          RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/runners")
+          
+          if echo "$RESPONSE" | grep -q '"name":"ubuntu-self-hosted".*"status":"online"'; then
+            echo "Runner self-hosted está disponible"
+            echo "available=true" >> $GITHUB_OUTPUT
+          else
+            echo "Runner self-hosted NO está disponible"
+            echo "available=false" >> $GITHUB_OUTPUT
+          fi
+
+  use-self-hosted:
+    needs: check-availability
+    if: needs.check-availability.outputs.is_runner_available == 'true'
+    runs-on: ubuntu-self-hosted
+    
+    steps:
+      - name: Execute on self-hosted runner
+        run: |
+          echo "Ejecutando en runner self-hosted: $(hostname)"
+          # Aquí van tus comandos principales
+          echo "Este job se ejecutó en el runner self-hosted"
+
+  use-github-hosted:
+    needs: check-availability
+    if: needs.check-availability.outputs.is_runner_available == 'false'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Execute on GitHub-hosted runner
+        run: |
+          echo "Ejecutando en runner GitHub-hosted (ubuntu-latest)"
+          # Los mismos comandos que en el job self-hosted
+          echo "Este job se ejecutó en el runner GitHub-hosted porque el self-hosted no estaba disponible"

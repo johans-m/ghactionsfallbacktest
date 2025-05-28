@@ -20,7 +20,7 @@ jobs:
             echo "available=true" >> $GITHUB_OUTPUT
           else
             echo "Runner self-hosted NO está disponible"
-            echo "::notice title=Runner self-hosted NO está disponible::
+            echo "::notice title=Runner self-hosted NO está disponible::"
             echo "available=false" >> $GITHUB_OUTPUT
           fi
 

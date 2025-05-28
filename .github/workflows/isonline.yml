@@ -16,11 +16,11 @@ jobs:
             "https://api.github.com/repos/${{ github.repository }}/actions/runners")
           
           if echo "$RESPONSE" | grep -q '"name":"self-hosted-linux".*"status":"online"'; then
-            echo "::notice title=Runner self-hosted está disponible::"
+            echo "::notice title=self-hosted NO está disponible::No se encontró un runner self-hosted activo."
             echo "available=true" >> $GITHUB_OUTPUT
           else
             echo "Runner self-hosted NO está disponible"
-            echo "::notice title=Runner self-hosted NO está disponible::"
+            echo "::notice title=self-hosted está disponible:: Se encontró el runner self-hosted-linux activo."
             echo "available=false" >> $GITHUB_OUTPUT
           fi
 

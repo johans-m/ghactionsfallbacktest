@@ -15,7 +15,7 @@ jobs:
           RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             "https://api.github.com/repos/${{ github.repository }}/actions/runners")
           
-          if echo "$RESPONSE" | grep -q '"name":"ubuntu-self-hosted".*"status":"online"'; then
+          if echo "$RESPONSE" | grep -q '"name":"self-hosted-linux".*"status":"online"'; then
             echo "Runner self-hosted está disponible"
             echo "available=true" >> $GITHUB_OUTPUT
           else
@@ -25,8 +25,8 @@ jobs:
 
   use-self-hosted:
     needs: check-availability
-    if: needs.check-availability.outputs.is_runner_available == 'true'
-    runs-on: ubuntu-self-hosted
+    if: needs.check-availability.outputs.is_runner_available == 'false'
+    runs-on: ubuntu-latest #self-hosted-linux
     
     steps:
       - name: Execute on self-hosted runner
@@ -37,7 +37,7 @@ jobs:
 
   use-github-hosted:
     needs: check-availability
-    if: needs.check-availability.outputs.is_runner_available == 'false'
+    if: needs.check-availability.outputs.is_runner_available == 'true'
     runs-on: ubuntu-latest
     
     steps:

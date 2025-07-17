@@ -1,28 +1,61 @@
-name: Create PR from upstream to master
+name: Sync Upstream to Main
 
 on:
-  workflow_dispatch: # permite correrlo manualmente desde GitHub
+  workflow_dispatch:
   schedule:
-    - cron: '0 12 * * 1' # cada lunes a las 12:00 UTC (ajústalo según lo necesites)
+    - cron: '0 0 * * *'
+
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
-  create-pr:
+  sync-upstream:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main  # Asegurarse de estar en main
 
-      - name: Create pull request
+      - name: Fetch upstream branch
+        run: |
+          git fetch origin upstream
+          git checkout -b upstream origin/upstream
+
+      - name: Verify changes
+        id: verify-changes
+        run: |
+          # Comparar main con upstream
+          CHANGES=$(git diff main..upstream --shortstat)
+          if [ -n "$CHANGES" ]; then
+            echo "changes_exist=true" >> $GITHUB_OUTPUT
+            echo "::notice::Changes detected:"
+            git diff main..upstream --stat
+          else
+            echo "changes_exist=false" >> $GITHUB_OUTPUT
+            echo "::notice::No changes between main and upstream"
+          fi
+
+      - name: Create Pull Request (v6 compatible)
+        if: steps.verify-changes.outputs.changes_exist == 'true'
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: 'chore: sync upstream into master'
-          title: 'Merge upstream into master'
-          body: |
-            This PR merges changes from the `upstream` branch into `master`.
-            Please review and merge if appropriate.
-          base: master
-          head: upstream
-          branch: auto/upstream-to-master
+          title: "Sync: Upstream → Main [Automated]"
+          body: "Automated update from upstream branch"
+          base: main
+          branch: "sync-upstream-to-main"
+          commit-message: "chore: sync changes from upstream"
+          labels: "automated-pr"
           delete-branch: true
-          draft: false
+          rebase: false
+
+      - name: Show result
+        run: |
+          if [ "${{ steps.verify-changes.outputs.changes_exist }}" == "true" ]; then
+            echo "PR created successfully"
+          else
+            echo "No changes to sync"
+          fi

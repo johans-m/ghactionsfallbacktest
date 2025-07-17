@@ -1,36 +1,36 @@
-name: Create PR from Upstream to Main
+  name: Create PR from Upstream to Main
 
-on:
-  workflow_dispatch:
+  on:
+    workflow_dispatch:
 
-jobs:
-  create-pr:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout main branch
-        uses: actions/checkout@v4
-        with:
-          ref: main
-          fetch-depth: 0
+  jobs:
+    create-pr:
+      runs-on: ubuntu-latest
+      steps:
+        - name: Checkout main branch
+          uses: actions/checkout@v4
+          with:
+            ref: main
+            fetch-depth: 0
 
-      - name: Add upstream remote
-        run: git remote add upstream https://github.com/ORIGINAL_OWNER/ORIGINAL_REPO.git
+        - name: Add upstream remote
+          run: git remote add upstream https://github.com/${{ github.repository_owner }}/${{ github.event.repository.name }}.git
 
-      - name: Fetch upstream
-        run: git fetch upstream
+        - name: Fetch upstream
+          run: git fetch upstream
 
-      - name: Create new branch from upstream/main
-        run: |
-          git checkout -b upstream-main upstream/main
+        - name: Create new branch from upstream/main
+          run: |
+            git checkout -b upstream-main upstream/main
 
-      - name: Push branch to origin
-        run: |
-          git push origin upstream-main --force
+        - name: Push branch to origin
+          run: |
+            git push origin upstream-main --force
 
-      - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v6
-        with:
-          source: upstream-main
-          target: main
-          title: 'Sync main with upstream'
-          body: 'This PR merges changes from upstream/main into main.'
+        - name: Create Pull Request
+          uses: peter-evans/create-pull-request@v6
+          with:
+            source: upstream-main
+            target: main
+            title: 'Sync main with upstream'
+            body: 'This PR merges changes from upstream/main into main.'

@@ -1,36 +1,42 @@
-  name: Create PR from Upstream to Main
+name: Create PR from upstream
 
-  on:
-    workflow_dispatch:
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *'
 
-  jobs:
-    create-pr:
-      runs-on: ubuntu-latest
-      steps:
-        - name: Checkout main branch
-          uses: actions/checkout@v4
-          with:
-            ref: main
-            fetch-depth: 0
+permissions:
+  contents: write
+  pull-requests: write
+  checks: write
 
-        - name: Add upstream remote
-          run: git remote add upstream https://github.com/${{ github.repository_owner }}/${{ github.event.repository.name }}.git
+jobs:
+  create-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
 
-        - name: Fetch upstream
-          run: git fetch upstream
+      - name: Setup Git Identity
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
 
-        - name: Create new branch from upstream/main
-          run: |
-            git checkout -b upstream-main upstream/main
+      - name: Verify branches
+        run: |
+          git remote -v
+          git fetch --all
+          git branch -a
 
-        - name: Push branch to origin
-          run: |
-            git push origin upstream-main --force
-
-        - name: Create Pull Request
-          uses: peter-evans/create-pull-request@v6
-          with:
-            source: upstream-main
-            target: main
-            title: 'Sync main with upstream'
-            body: 'This PR merges changes from upstream/main into main.'
+      - name: Create PR
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
+          commit-message: "chore: sync from upstream"
+          title: "Update from upstream"
+          body: "Automated PR from upstream branch"
+          base: main  # Tu rama destino
+          head: upstream  # Tu rama origen

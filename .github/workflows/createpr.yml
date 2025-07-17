@@ -1,61 +1,36 @@
-name: Create PR from upstream to main
+name: Create PR from Upstream to Main
 
 on:
-  workflow_dispatch:  # Activación manual
-
-permissions:
-  contents: write
-  pull-requests: write
+  workflow_dispatch:
 
 jobs:
   create-pr:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
+      - name: Checkout main branch
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Necesario para comparar ramas
+          ref: main
+          fetch-depth: 0
 
-      - name: Verificar existencia de upstream
-        id: check-upstream
+      - name: Add upstream remote
+        run: git remote add upstream https://github.com/ORIGINAL_OWNER/ORIGINAL_REPO.git
+
+      - name: Fetch upstream
+        run: git fetch upstream
+
+      - name: Create new branch from upstream/main
         run: |
-          if git show-ref --quiet refs/remotes/origin/upstream; then
-            echo "upstream_exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "upstream_exists=false" >> $GITHUB_OUTPUT
-            echo "La rama upstream no existe"
-            exit 0
-          fi
+          git checkout -b upstream-main upstream/main
 
-      - name: Comparar upstream con main
-        id: check-diff
-        if: steps.check-upstream.outputs.upstream_exists == 'true'
+      - name: Push branch to origin
         run: |
-          git fetch origin upstream
-          if [ -n "$(git diff main..upstream --shortstat)" ]; then
-            echo "changes_exist=true" >> $GITHUB_OUTPUT
-            echo "Diferencias encontradas:"
-            git diff main..upstream --stat
-          else
-            echo "changes_exist=false" >> $GITHUB_OUTPUT
-            echo "No hay cambios entre upstream y main"
-          fi
+          git push origin upstream-main --force
 
-      - name: Crear Pull Request
-        if: steps.check-upstream.outputs.upstream_exists == 'true' && steps.check-diff.outputs.changes_exist == 'true'
-        uses: peter-evans/create-pull-request@v5
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          title: "Sync: upstream → main [Automated]"
-          body: "Actualización automática desde la rama upstream"
-          base: main  # Rama DESTINO (a la que se hará merge)
-          head: upstream  # Rama ORIGEN (de donde vienen los cambios)
-          branch: "sync-upstream-to-main"  # Rama temporal
-          commit-message: "chore: sync changes from upstream"
-          labels: "automated-pr"
-          delete-branch: true
-          rebase: false
-
-      - name: Mostrar mensaje si no hay cambios
-        if: steps.check-upstream.outputs.upstream_exists == 'true' && steps.check-diff.outputs.changes_exist == 'false'
-        run: echo "No se creó PR porque no hay cambios nuevos entre upstream y main"
+          source: upstream-main
+          target: main
+          title: 'Sync main with upstream'
+          body: 'This PR merges changes from upstream/main into main.'

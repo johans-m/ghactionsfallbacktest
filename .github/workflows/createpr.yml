@@ -2,41 +2,60 @@ name: Create PR from upstream to master
 
 on:
   workflow_dispatch:
-  workflow_run:
-    workflows: ["Smart Runner Selection"]
-    types: [completed]
+  schedule:
+    - cron: '0 0 * * *'
+
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
-  check-and-create-pr:
+  create-upstream-pr:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout master
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
 
-      - name: Fetch upstream branch
-        run: git fetch origin upstream:upstream --depth=1
-
-      - name: Verificar rama
+      - name: Verificar rama upstream
         id: check-branch
         run: |
           if git show-ref --verify --quiet refs/remotes/origin/upstream; then
             echo "exists=true" >> $GITHUB_OUTPUT
           else
             echo "exists=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+      - name: Verificar diferencias
+        id: check-diff
+        if: steps.check-branch.outputs.exists == 'true'
+        run: |
+          git fetch origin upstream
+          if [ -z "$(git diff main..upstream --shortstat)" ]; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "No hay cambios entre main y upstream"
+          else
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            echo "Cambios detectados:"
+            git diff main..upstream --stat
           fi
 
       - name: Crear Pull Request
-        if: steps.check-branch.outputs.exists == 'true'
+        if: steps.check-branch.outputs.exists == 'true' && steps.check-diff.outputs.has_changes == 'true'
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          title: "Actualización desde upstream"
-          body: "Pull Request automático para incorporar cambios desde la rama upstream a master"
-          base: master
-          branch: "sync-upstream-to-master"
-          branch-suffix: timestamp
-          commit-message: "Sincronizar cambios desde upstream"
-          labels: "automated-pr"
+          title: "Actualización desde upstream [auto]"
+          body: "Actualización automática desde la rama upstream"
+          base: main
+          branch: "update-from-upstream"
+          commit-message: "Actualización desde upstream"
+          labels: "automated"
           delete-branch: true
+          rebase: false
+
+      - name: Mostrar resultado si no hay cambios
+        if: steps.check-branch.outputs.exists == 'true' && steps.check-diff.outputs.has_changes == 'false'
+        run: echo "No se creó PR porque no hay cambios entre main y upstream"

@@ -1,89 +1,28 @@
-name: Sync Upstream to Main
+name: Create PR from upstream to master
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: # permite correrlo manualmente desde GitHub
   schedule:
-    - cron: '0 0 * * *'
-
-permissions:
-  contents: write
-  pull-requests: write
+    - cron: '0 12 * * 1' # cada lunes a las 12:00 UTC (ajústalo según lo necesites)
 
 jobs:
-  sync-upstream:
+  create-pr:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Verify branches exist
-        id: verify-branches
-        run: |
-          # Verificar rama main
-          if ! git show-ref --quiet refs/remotes/origin/main; then
-            echo "::error::Branch 'main' does not exist"
-            exit 1
-          fi
-          
-          # Verificar rama upstream
-          if git show-ref --quiet refs/remotes/origin/upstream; then
-            echo "upstream_exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "::error::Branch 'upstream' does not exist"
-            echo "upstream_exists=false" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-      - name: Force fetch and compare branches
-        if: steps.verify-branches.outputs.upstream_exists == 'true'
-        id: compare-branches
-        run: |
-          # Fetch latest changes
-          git fetch origin main
-          git fetch origin upstream
-          
-          # Create temporary branch for comparison
-          git checkout -b temp-compare-branch upstream
-          
-          # Get commit differences
-          COMMIT_DIFF=$(git log main..upstream --oneline)
-          COMMIT_COUNT=$(echo "$COMMIT_DIFF" | wc -l | tr -d ' ')
-          
-          if [ "$COMMIT_COUNT" -gt 0 ]; then
-            echo "changes_exist=true" >> $GITHUB_OUTPUT
-            echo "::notice::Found $COMMIT_COUNT new commits:"
-            echo "$COMMIT_DIFF"
-          else
-            echo "changes_exist=false" >> $GITHUB_OUTPUT
-            echo "::notice::No new commits found"
-          fi
-          
-          # Clean up
-          git checkout main
-          git branch -D temp-compare-branch
-
-      - name: Create Pull Request
-        if: steps.verify-branches.outputs.upstream_exists == 'true' && steps.compare-branches.outputs.changes_exist == 'true'
-        uses: peter-evans/create-pull-request@v5
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          title: "Sync: Upstream → Main [Automated]"
-          body: "Automated update from upstream branch"
-          base: main
+          commit-message: 'chore: sync upstream into master'
+          title: 'Merge upstream into master'
+          body: |
+            This PR merges changes from the `upstream` branch into `master`.
+            Please review and merge if appropriate.
+          base: master
           head: upstream
-          branch: "sync-upstream-to-main-$(date +%s)"
-          commit-message: "chore: sync changes from upstream"
-          labels: "automated-pr"
+          branch: auto/upstream-to-master
           delete-branch: true
-          rebase: false
-
-      - name: Output result
-        run: |
-          if [ "${{ steps.compare-branches.outputs.changes_exist }}" == "true" ]; then
-            echo "::notice::Pull request created successfully"
-          else
-            echo "::notice::No changes to sync between upstream and main"
-          fi
+          draft: false
